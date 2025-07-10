@@ -14,15 +14,30 @@
 
 <main>
   <section>
+    <h2>What is a Network Traffic Analyzer?</h2>
+    <p>
+      A Network Traffic Analyzer is a tool that monitors, captures, and analyzes network traffic in real-time.
+      It helps identify the types of data packets, measure bandwidth usage, and detect unusual or malicious activities on the host system.
+      This project demonstrates a simple analyzer with real-time monitoring and a simulated attack mode.
+    </p>
+  </section>
+
+  <section>
     <h2>Bandwidth Usage</h2>
     <canvas id="bandwidthChart"></canvas>
   </section>
 
   <section>
     <h2>Simulated Attack Mode</h2>
-    <button id="attackBtn">Toggle Attack Mode</button>
+    <button id="startBtn">Start Attack</button>
+    <button id="stopBtn">Stop Attack</button>
+    <p>Host Status: <span id="status">Normal</span></p>
   </section>
 </main>
+
+<footer>
+  © Project by Vinay M Sankaratti
+</footer>
 
 <script>
 const bandwidthCtx = document.getElementById('bandwidthChart').getContext('2d');
@@ -37,14 +52,6 @@ const bandwidthChart = new Chart(bandwidthCtx, {
     }
 });
 
-document.getElementById('attackBtn').addEventListener('click', () => {
-    fetch('/api/attack', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ mode: "on" })  // Toggles attack ON
-    });
-});
-
 function updateCharts() {
     fetch('/api/traffic').then(r=>r.json()).then(data => {
         bandwidthChart.data.labels.push(data.timestamp);
@@ -57,10 +64,28 @@ function updateCharts() {
             bandwidthChart.data.datasets[1].data.shift();
         }
         bandwidthChart.update();
+
+        document.getElementById('status').textContent = data.attack ? "Malicious Activity Detected" : "Normal";
     });
 }
 
 setInterval(updateCharts, 1000);
+
+document.getElementById('startBtn').addEventListener('click', () => {
+    fetch('/api/attack', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ mode: "on" })
+    });
+});
+
+document.getElementById('stopBtn').addEventListener('click', () => {
+    fetch('/api/attack', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ mode: "off" })
+    });
+});
 </script>
 
 </body>

@@ -67,8 +67,10 @@ def traffic():
 @app.route("/api/attack", methods=["POST"])
 def attack():
     global attack_mode
-    attack_mode = not attack_mode
+    mode = request.json.get("mode")
+    attack_mode = True if mode == "on" else False
     return jsonify({"attack": attack_mode})
+
 
 
 if __name__ == "__main__":
