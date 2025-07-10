@@ -4,140 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Network Traffic Analyzer</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <header>
   <h1>Network Traffic Analyzer</h1>
-  <p>© 2025 Vinay M Sankaratti All rights reserved.</p>
 </header>
 
 <main>
-<section class="intro">
-  <h2>What is a Network Traffic Analyzer?</h2>
-  <p>
-    This project monitors and analyzes real-time network traffic, showing bandwidth usage and protocol breakdowns. 
-    It also includes a simulated attack mode to help learners understand how abnormal traffic appears.
-  </p>
-</section>
+  <section>
+    <h2>Bandwidth Usage</h2>
+    <canvas id="bandwidthChart"></canvas>
+  </section>
 
-<section class="graph">
-  <h2>Live Bandwidth Usage</h2>
-  <canvas id="trafficChart"></canvas>
-</section>
-
-<section class="protocols">
-  <h2>📦 Protocol Breakdown</h2>
-  <canvas id="protocolChart"></canvas>
-</section>
-
-<section class="attack">
-  <h2>⚡ Simulated Attack</h2>
-  <button onclick="toggleAttack(true)">Start Attack</button>
-  <button onclick="toggleAttack(false)">Stop Attack</button>
-  <p id="attackStatus">Status: Idle</p>
-</section>
+  <section>
+    <h2>Simulated Attack Mode</h2>
+    <button id="attackBtn">Toggle Attack Mode</button>
+  </section>
 </main>
 
 <script>
-const trafficCtx = document.getElementById('trafficChart').getContext('2d');
-const trafficChart = new Chart(trafficCtx, {
+const bandwidthCtx = document.getElementById('bandwidthChart').getContext('2d');
+const bandwidthChart = new Chart(bandwidthCtx, {
     type: 'line',
     data: {
         labels: [],
         datasets: [
-            {
-                label: 'Upload (Bytes/sec)',
-                data: [],
-                borderColor: 'rgb(255, 99, 132)',
-                fill: false
-            },
-            {
-                label: 'Download (Bytes/sec)',
-                data: [],
-                borderColor: 'rgb(54, 162, 235)',
-                fill: false
-            }
+            { label: 'Upload', data: [], borderColor: '#36A2EB', fill: false },
+            { label: 'Download', data: [], borderColor: '#FF6384', fill: false }
         ]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            x: { title: { display: true, text: 'Time' }},
-            y: { title: { display: true, text: 'Bytes/sec' }}
+    }
+});
+
+document.getElementById('attackBtn').addEventListener('click', () => {
+    fetch('/api/attack', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ mode: "on" })  // Toggles attack ON
+    });
+});
+
+function updateCharts() {
+    fetch('/api/traffic').then(r=>r.json()).then(data => {
+        bandwidthChart.data.labels.push(data.timestamp);
+        bandwidthChart.data.datasets[0].data.push(data.upload);
+        bandwidthChart.data.datasets[1].data.push(data.download);
+
+        if (bandwidthChart.data.labels.length > 20) {
+            bandwidthChart.data.labels.shift();
+            bandwidthChart.data.datasets[0].data.shift();
+            bandwidthChart.data.datasets[1].data.shift();
         }
-    }
-});
-
-const protocolCtx = document.getElementById('protocolChart').getContext('2d');
-const protocolChart = new Chart(protocolCtx, {
-    type: 'pie',
-    data: {
-        labels: ['TCP', 'UDP', 'ICMP', 'Other'],
-        datasets: [{
-            data: [0, 0, 0, 0],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.7)',
-                'rgba(54, 162, 235, 0.7)',
-                'rgba(255, 206, 86, 0.7)',
-                'rgba(75, 192, 192, 0.7)'
-            ]
-        }]
-    }
-});
-
-function fetchTraffic() {
-    fetch('/api/traffic')
-        .then(res => res.json())
-        .then(data => {
-            const time = data.timestamp;
-            const upload = data.upload;
-            const download = data.download;
-            const attack = data.attack;
-
-            document.getElementById("attackStatus").innerText =
-                "Status: " + (attack ? "Running" : "Idle");
-
-            if (trafficChart.data.labels.length > 20) {
-                trafficChart.data.labels.shift();
-                trafficChart.data.datasets[0].data.shift();
-                trafficChart.data.datasets[1].data.shift();
-            }
-
-            trafficChart.data.labels.push(time);
-            trafficChart.data.datasets[0].data.push(upload);
-            trafficChart.data.datasets[1].data.push(download);
-
-            trafficChart.update();
-        });
-}
-
-function fetchProtocols() {
-    fetch('/api/protocols')
-        .then(res => res.json())
-        .then(data => {
-            protocolChart.data.datasets[0].data = [
-                data.TCP, data.UDP, data.ICMP, data.Other
-            ];
-            protocolChart.update();
-        });
-}
-
-setInterval(fetchTraffic, 1000);
-setInterval(fetchProtocols, 1000);
-
-function toggleAttack(state) {
-    fetch("/api/attack", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({mode: state ? "on" : "off"})
+        bandwidthChart.update();
     });
 }
+
+setInterval(updateCharts, 1000);
 </script>
 
-<footer>
-  <p>Developed as part of a professional academic project. Contact us for more details.</p>
-</footer>
 </body>
 </html>

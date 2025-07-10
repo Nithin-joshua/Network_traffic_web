@@ -10,16 +10,11 @@ prev_recv = psutil.net_io_counters().bytes_recv
 prev_time = time.time()
 attack_mode = False  # Simulated attack flag
 
-# Protocol counters
-protocol_counts = {"TCP": 0, "UDP": 0, "ICMP": 0, "Other": 0}
-
 # Adjust interface for your system
-INTERFACE = "Ethernet"  # Or "Ethernet" if on wired. Run helper to see available interfaces.
+INTERFACE = "Wi-Fi"  # Or "Ethernet" if on wired
 
 
 def packet_sniffer():
-    global protocol_counts
-
     try:
         cap = pyshark.LiveCapture(interface=INTERFACE)
         print(f"✅ Capturing on interface: {INTERFACE}")
@@ -27,24 +22,8 @@ def packet_sniffer():
         print(f"[ERROR] Could not open interface '{INTERFACE}': {e}")
         return
 
-    for pkt in cap.sniff_continuously():
-        proto = "Other"
-        try:
-            if 'TCP' in pkt:
-                proto = "TCP"
-            elif 'UDP' in pkt:
-                proto = "UDP"
-            elif 'ICMP' in pkt:
-                proto = "ICMP"
-        except Exception:
-            pass
-
-        protocol_counts[proto] += 1
-
-        # Optional: log every 50 packets to confirm activity
-        total = sum(protocol_counts.values())
-        if total % 50 == 0:
-            print(f"📊 Protocol counts so far: {protocol_counts}")
+    for _ in cap.sniff_continuously():
+        pass  # Sniffing is kept alive if you want to extend later
 
 
 # ✅ Start sniffer thread AFTER function is defined
@@ -65,7 +44,7 @@ def traffic():
     curr_time = time.time()
 
     elapsed = curr_time - prev_time
-    if elapsed == 0:  # avoid division by zero
+    if elapsed == 0:
         elapsed = 1
 
     upload_rate = (curr_sent - prev_sent) / elapsed
@@ -88,14 +67,8 @@ def traffic():
 @app.route("/api/attack", methods=["POST"])
 def attack():
     global attack_mode
-    mode = request.json.get("mode")
-    attack_mode = True if mode == "on" else False
+    attack_mode = not attack_mode
     return jsonify({"attack": attack_mode})
-
-
-@app.route("/api/protocols")
-def protocols():
-    return jsonify(protocol_counts)
 
 
 if __name__ == "__main__":
